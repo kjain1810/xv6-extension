@@ -3,22 +3,18 @@
 #include "param.h"
 #include "proc.h"
 #include "user.h"
+#include "fcntl.h"
 
 int main(int argc, char *argv[]) {
-    if(argc != 1)
-    {
-        printf(1, "No arguments required!\n");
-        exit();
-    }
     int pid = fork();
     int rtime, wtime;
     if(pid == 0) {
-        int i;
-        volatile int x;
-        for(i = 0; i < 1000000000; i++) {
-            x++;
-            x /= 2;
+        if (argc == 1)
+        {
+            printf(1, "Arguments required!\n");
+            exit();
         }
+        exec(argv[1], argv + 1);
         exit();
     }
     if(pid == 1) {
