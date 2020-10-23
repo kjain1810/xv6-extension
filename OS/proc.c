@@ -89,6 +89,10 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  p->lupdate = ticks;
+  p->ctime = ticks;
+  p->rtime = 0;
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -262,6 +266,7 @@ exit(void)
   }
 
   // Jump into the scheduler, never to return.
+  curproc->etime = ticks;
   curproc->state = ZOMBIE;
   sched();
   panic("zombie exit");
@@ -294,6 +299,7 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        p->etime = ticks;
         p->state = UNUSED;
         release(&ptable.lock);
         return pid;
@@ -308,6 +314,49 @@ wait(void)
 
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+  }
+}
+
+int waitx(int *wtime, int *rtime){
+  struct proc *curproc = myproc();
+  struct proc *p;
+  int havekids, pid;
+
+  acquire(&ptable.lock);
+  for (;;){
+    havekids = 0;
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if (p->parent != curproc)
+        continue;
+      havekids = 1;
+      if (p->state == ZOMBIE){
+        p->etime = ticks;                        // update process end time
+        *rtime = p->rtime;                       // rtime was being calculated all along
+        *wtime = p->etime - p->ctime - p->rtime; // calculate write
+
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        p->etime = ticks;
+        p->state = UNUSED;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+    if (!havekids || curproc->killed){
+      release(&ptable.lock);
+
+      *rtime = -1; // give impossible value if none
+      *wtime = -1; // give impossible value if none
+
+      return -1;
+    }
+    sleep(curproc, &ptable.lock);
   }
 }
 
@@ -332,6 +381,12 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    {
+      if(p->state == RUNNING)
+        p->rtime = p->rtime + (ticks - p->lupdate);
+      p->lupdate = ticks;
+    }
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
