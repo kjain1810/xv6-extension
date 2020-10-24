@@ -11,7 +11,14 @@ int main(int argc, char *argv[]) {
     if(pid == 0) {
         if (argc == 1)
         {
-            printf(1, "Arguments required!\n");
+            printf(1, "Arguments required!\nUsing default process\n");
+            volatile int i = 1;
+            int x;
+            for(x = 0; x < 100000000; x++) {
+                i++;
+                if(x % 2 == 0)
+                    i /= 2;
+            }
             exit();
         }
         exec(argv[1], argv + 1);
