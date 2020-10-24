@@ -54,6 +54,12 @@ struct proc {
   uint etime;                  // Time of end of process
   uint rtime;                  // Total runtime of the process
   uint lupdate;                // Last update time of the process
+  
+  uint priority;               // Priority of the process
+  uint wtime;                  // Time for which the process has been waiting
+  uint nrun;                   // Number of times the process was picked by the scheduler
+  uint curq;                   // Current queue
+  uint qtime[5];               // Number of ticks the process has received at each of the 5 queues
 };
 
 // Process memory is laid out contiguously, low addresses first:

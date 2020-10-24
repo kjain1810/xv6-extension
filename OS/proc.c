@@ -92,6 +92,13 @@ found:
   p->lupdate = ticks;
   p->ctime = ticks;
   p->rtime = 0;
+  p->etime = 0;
+  p->priority = 60;
+  p->wtime = 0;
+  p->nrun = 0;
+  p->curq = 0;
+  for(int a = 0; a < 5; a++)
+    p->qtime[a] = 0;
 
   release(&ptable.lock);
 
@@ -358,6 +365,32 @@ int waitx(int *wtime, int *rtime){
     }
     sleep(curproc, &ptable.lock);
   }
+}
+
+int getallproc(void)
+{
+  // cprintf("PID   Priority    State    r_time    w_time    n_run    cur_q    q0    q1    q2    q3    q4\n");
+  struct proc* p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if(p->state == UNUSED)
+      continue;
+    char states[6][10] = {"UNUSED", "EMBRYO", "SLEEPING", "RUNNABLE", "ZOMBIE"};
+    // cprintf("%d    %d    %s\n", p->pid, p->priority, states[p->state]);
+    cprintf("PID: %d\n", p->pid);
+    cprintf("Priority: %d\n", p->priority);
+    cprintf("State: %s\n", states[p->state]);
+    cprintf("r_time: %d\n", p->rtime);
+    cprintf("w_time: %d\n", p->wtime);
+    cprintf("n_run: %d\n", p->nrun);
+    cprintf("curq: %d\n", p->curq);
+    cprintf("qtime: [");
+    for(int a = 0; a < 5; a++)
+      cprintf("%d,", p->qtime[a]);
+    cprintf("]\n");
+    cprintf("\n\n");
+  }
+  return 1;
 }
 
 //PAGEBREAK: 42

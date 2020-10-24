@@ -91,7 +91,8 @@ sys_uptime(void)
 }
 
 int 
-sys_waitx(void){
+sys_waitx(void)
+{
   int *wtime;
   int *rtime;
   int flag = argptr(0, (char **)&wtime, sizeof(int));
@@ -101,4 +102,10 @@ sys_waitx(void){
   if (flag)
     return -1;
   return waitx((int *)wtime, (int *)rtime);
+}
+
+int 
+sys_getallproc(void)
+{
+  return getallproc();
 }
