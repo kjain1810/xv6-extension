@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
         exec(argv[1], argv + 1);
         exit();
     }
-    if(pid == 1) {
+    if(pid == -1) {
         printf(1, "Fork failed!\n");
         exit();
     }
