@@ -369,7 +369,6 @@ int waitx(int *wtime, int *rtime){
 
 int getallproc(void)
 {
-  // cprintf("PID   Priority    State    r_time    w_time    n_run    cur_q    q0    q1    q2    q3    q4\n");
   struct proc* p;
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
@@ -407,39 +406,78 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  
+  int scheduler = 0;
+
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
-      if(p->state == RUNNING)
+      if (p->state == RUNNING)
         p->rtime = p->rtime + (ticks - p->lupdate);
       p->lupdate = ticks;
     }
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+    if(scheduler == 0){       // Round robin
+      for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+      {
+        if (p->state != RUNNABLE)
+          continue;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+      }
+    }
+    else if(scheduler == 1){  // FCFS
+      uint minimum = ticks + 1000;
+      // uint minstart = minimum;
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+      {
+        if(p->state != RUNNABLE)
+          continue;
+        if(p->ctime < minimum)
+          minimum = p->ctime;
+      }
+
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+        if(p->state == RUNNABLE && p->ctime == minimum)
+        {
+          // Switch to chosen process.  It is the process's job
+          // to release ptable.lock and then reacquire it
+          // before jumping back to us.
+          c->proc = p;
+          switchuvm(p);
+          p->state = RUNNING;
+
+          swtch(&(c->scheduler), p->context);
+          switchkvm();
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+        }
+    }
+    else if(scheduler == 2){  // PBS
+
+    }
+    else if(scheduler == 3){  // MLFQ
+      
     }
     release(&ptable.lock);
-
   }
 }
 
