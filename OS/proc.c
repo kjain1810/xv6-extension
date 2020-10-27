@@ -392,6 +392,29 @@ int getallproc(void)
   return 1;
 }
 
+int set_priority(int new_priority, int pid)
+{
+  acquire(&ptable.lock);
+  struct proc *p;
+  int ret = -1;
+  int callSched = 0;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if(p->pid == pid)
+    {
+      if(p->priority > new_priority)
+        callSched = 1;
+      ret = p->priority;
+      p->priority = new_priority;
+      break;
+    }
+  }
+  release(&ptable.lock);
+  if(callSched)
+    yield();
+  return ret;
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -406,9 +429,9 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  int scheduler = 0;
-
+  SCHEDULER = 0;
   for(;;){
+    // cprintf("1\n");
     // Enable interrupts on this processor.
     sti();
 
@@ -421,7 +444,7 @@ scheduler(void)
       p->lupdate = ticks;
     }
 
-    if(scheduler == 0){       // Round robin
+    if(SCHEDULER == 0){       // Round robin
       for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
       {
         if (p->state != RUNNABLE)
@@ -442,7 +465,7 @@ scheduler(void)
         c->proc = 0;
       }
     }
-    else if(scheduler == 1){  // FCFS
+    else if(SCHEDULER == 1){  // FCFS
       uint minimum = ticks + 1000;
       // uint minstart = minimum;
       for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
@@ -452,7 +475,6 @@ scheduler(void)
         if(p->ctime < minimum)
           minimum = p->ctime;
       }
-
       for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
         if(p->state == RUNNABLE && p->ctime == minimum)
         {
@@ -471,10 +493,35 @@ scheduler(void)
           c->proc = 0;
         }
     }
-    else if(scheduler == 2){  // PBS
+    else if(SCHEDULER == 2){  // PBS
+        uint minimum = 101;
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+        {
+          if(p->state != RUNNABLE)
+            continue;
+          if(p->priority < minimum)
+            minimum = p->priority;
+        }
+        
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+          if(p->state == RUNNABLE && p->priority == minimum)
+          {
+            // Switch to chosen process.  It is the process's job
+            // to release ptable.lock and then reacquire it
+            // before jumping back to us.
+            c->proc = p;
+            switchuvm(p);
+            p->state = RUNNING;
 
+            swtch(&(c->scheduler), p->context);
+            switchkvm();
+
+            // Process is done running for now.
+            // It should have changed its p->state before coming back.
+            c->proc = 0;
+          }
     }
-    else if(scheduler == 3){  // MLFQ
+    else if(SCHEDULER == 3){  // MLFQ
       
     }
     release(&ptable.lock);
