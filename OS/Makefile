@@ -71,7 +71,12 @@ QEMU = $(shell if which qemu > /dev/null; \
 	echo "***" 1>&2; exit 1)
 endif
 
-CC = $(TOOLPREFIX)gcc
+ifndef SCHEDULER
+SCHEDULER = RR
+endif
+
+SCHEDFLAG = -D SCHED=\"$(SCHEDULER)\"
+CC = $(TOOLPREFIX)gcc $(SCHEDFLAG)
 AS = $(TOOLPREFIX)gas
 LD = $(TOOLPREFIX)ld
 OBJCOPY = $(TOOLPREFIX)objcopy

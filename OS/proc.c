@@ -429,7 +429,6 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  SCHEDULER = 0;
   for(;;){
     // cprintf("1\n");
     // Enable interrupts on this processor.
@@ -444,7 +443,7 @@ scheduler(void)
       p->lupdate = ticks;
     }
 
-    if(SCHEDULER == 0){       // Round robin
+    if(SCHED[0] == 'R'){       // Round robin
       for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
       {
         if (p->state != RUNNABLE)
@@ -465,7 +464,7 @@ scheduler(void)
         c->proc = 0;
       }
     }
-    else if(SCHEDULER == 1){  // FCFS
+    else if(SCHED[0] == 'F'){  // FCFS
       uint minimum = ticks + 1000;
       // uint minstart = minimum;
       for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
@@ -493,7 +492,7 @@ scheduler(void)
           c->proc = 0;
         }
     }
-    else if(SCHEDULER == 2){  // PBS
+    else if(SCHED[0] == 'P'){  // PBS
         uint minimum = 101;
         for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
         {
@@ -521,7 +520,7 @@ scheduler(void)
             c->proc = 0;
           }
     }
-    else if(SCHEDULER == 3){  // MLFQ
+    else if(SCHED[0] == 'M'){  // MLFQ
       
     }
     release(&ptable.lock);

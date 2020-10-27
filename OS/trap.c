@@ -105,7 +105,7 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->state == RUNNING &&
      tf->trapno == T_IRQ0+IRQ_TIMER)
   {
-    if(SCHEDULER != 1) // IF NOT FCFS
+    if(SCHED[0] != 'F') // IF NOT FCFS
      yield();
   }
   // Check if the process has been killed since we yielded
