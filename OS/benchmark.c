@@ -39,7 +39,10 @@ int main(int argc, char *argv[])
     else{
         for (int i = 0; i < 1000000000; i++)
           {
-            ; //cpu time
+            for(int a = 0; a < 1000; a++)
+            {
+              ;
+            }
           }
         int wtime, rtime;
         int ret = waitx(&wtime, &rtime);
