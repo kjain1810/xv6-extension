@@ -440,6 +440,8 @@ scheduler(void)
     {
       if (p->state == RUNNING)
         p->rtime = p->rtime + (ticks - p->lupdate);
+      if (p->state == RUNNABLE)
+        p->wtime = p->wtime + (ticks - p->lupdate);
       p->lupdate = ticks;
     }
 
@@ -452,6 +454,8 @@ scheduler(void)
         // Switch to chosen process.  It is the process's job
         // to release ptable.lock and then reacquire it
         // before jumping back to us.
+        p->nrun += 1;
+        p->wtime = 0;
         c->proc = p;
         switchuvm(p);
         p->state = RUNNING;
@@ -480,6 +484,8 @@ scheduler(void)
           // Switch to chosen process.  It is the process's job
           // to release ptable.lock and then reacquire it
           // before jumping back to us.
+          p->nrun += 1;
+          p->wtime = 0;
           c->proc = p;
           switchuvm(p);
           p->state = RUNNING;
@@ -501,13 +507,24 @@ scheduler(void)
           if(p->priority < minimum)
             minimum = p->priority;
         }
-        
+        if(minimum == 101)
+          continue;
         for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+        {
+          struct proc *q;
+          int newmin = 0;
+          for(q = ptable.proc; q < &ptable.proc[NPROC]; q++)
+            if(q->state == RUNNABLE && q->priority < minimum)
+              newmin = 1;
+          if(newmin)
+            break;
           if(p->state == RUNNABLE && p->priority == minimum)
           {
             // Switch to chosen process.  It is the process's job
             // to release ptable.lock and then reacquire it
             // before jumping back to us.
+            p->nrun += 1;
+            p->wtime = 0;
             c->proc = p;
             switchuvm(p);
             p->state = RUNNING;
@@ -519,6 +536,7 @@ scheduler(void)
             // It should have changed its p->state before coming back.
             c->proc = 0;
           }
+        }
     }
     else if(SCHED[0] == 'M'){  // MLFQ
       
