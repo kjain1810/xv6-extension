@@ -195,4 +195,20 @@ if(SCHED[0] == 'M') // IF MLFQ
 
 Using this, the process yields only when it has used the allowed clock ticks and not before. Also, after using the allowed time, the process will get shifted to the next queue and we mark it such using the ```updatequeue``` function implemented in ```proc.c```.  After the process has been run, we check if the process is still in state ```RUNNABLE```. If it is, we will update and insert into the appropriate queue as required.
 
-## Questions
+### Possible exploitation
+
+Since a process leaves the queuing system when it voluntarily leaves relinquishes control of the CPU and is inserted back when it is ready again, a process could, theoretically, enter into queue 1, run for 1 clock tick, relinquish, then immediately become available again and run for just 1 clock tick again. With this, the process will never get demoted from queue 1. Although the time slice it will get will be lower, but if the number of process in queue 2, 3 and 4 is large, this will allow the process to prioritise its execution by a large factor and exploit the system.
+
+## Bonus
+
+![plot_10_procs_20_aging](/home/kunal/Desktop/padhai/xv6-extension/plot_10_procs_20_aging.png)
+
+This is the plot of the 10 processes and their queues as the execution progresses. We using age limit in a certain queue here as 20.
+
+![plot_10_procs_30_aging](/home/kunal/Desktop/padhai/xv6-extension/plot_10_procs_30_aging.png)
+
+This is the plot of the 10 processes and their queue with age limit as 30.
+
+As is evident, with age limit 20, the processes shift between queues much more frequently.
+
+Note: the processes go on for much longer but since there isn't a lot of activity in that part of the processes, I cropped to make this part clearer.
