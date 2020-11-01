@@ -201,11 +201,11 @@ Since a process leaves the queuing system when it voluntarily leaves relinquishe
 
 ## Bonus
 
-![plot_10_procs_20_aging](/home/kunal/Desktop/padhai/xv6-extension/plot_10_procs_20_aging.png)
+![plot_10_procs_20_aging](./plot_10_procs_20_aging.png)
 
 This is the plot of the 10 processes and their queues as the execution progresses. We using age limit in a certain queue here as 20.
 
-![plot_10_procs_30_aging](/home/kunal/Desktop/padhai/xv6-extension/plot_10_procs_30_aging.png)
+![plot_10_procs_30_aging](./plot_10_procs_30_aging.png)
 
 This is the plot of the 10 processes and their queue with age limit as 30.
 
