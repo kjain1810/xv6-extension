@@ -7,6 +7,38 @@
 #include "proc.h"
 #include "spinlock.h"
 
+struct proc *queue[5][NPROC];
+int en[5] = {0, 0, 0, 0, 0};
+int allowed[5] = {1, 2, 4, 8, 16};
+int insertqueue(int i, struct proc *p)
+{
+  // cprintf("INSERTING ID: %d\n", p->pid);
+  for(int a = 0; a < en[i]; a++)
+    if(queue[i][a]->pid == p->pid)
+      return 0;
+  p->lupdate = ticks;
+  p->curq = i;
+  queue[i][en[i]++] = p;
+  return 1;
+}
+int removequeue(int i, struct proc *p)
+{
+  int idx = -1;
+  // cprintf("REMOVING ID: %d\n", p->pid);
+  for (int a = 0; a < en[i]; a++)
+    if(queue[i][a]->pid == p->pid)
+    {
+      idx = a;
+      break;
+    }
+  if(idx == -1)
+    return 0;
+  for(int a = idx; a < en[i]; a++)
+    queue[i][a] = queue[i][a + 1];
+  en[i]--;
+  return 1;
+}
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -97,6 +129,8 @@ found:
   p->wtime = 0;
   p->nrun = 0;
   p->curq = 0;
+  p->toupdate = 0;
+  p->curqtime = 0;
   for(int a = 0; a < 5; a++)
     p->qtime[a] = 0;
 
@@ -160,6 +194,8 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
+  if(SCHED[0] == 'M')
+    insertqueue(0, p);
 
   release(&ptable.lock);
 }
@@ -226,7 +262,8 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-
+  if(SCHED[0] == 'M')
+    insertqueue(0, np);
   release(&ptable.lock);
 
   return pid;
@@ -302,6 +339,8 @@ wait(void)
         kfree(p->kstack);
         p->kstack = 0;
         freevm(p->pgdir);
+        if(SCHED[0] == 'M')
+          removequeue(p->curq, p);
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
@@ -340,11 +379,12 @@ int waitx(int *wtime, int *rtime){
         p->etime = ticks;                        // update process end time
         *rtime = p->rtime;                       // rtime was being calculated all along
         *wtime = p->etime - p->ctime - p->rtime; // calculate write
-
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
         freevm(p->pgdir);
+        if (SCHED[0] == 'M')
+          removequeue(p->curq, p);
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
@@ -374,7 +414,7 @@ int getallproc(void)
   {
     if(p->state == UNUSED)
       continue;
-    char states[6][10] = {"UNUSED", "EMBRYO", "SLEEPING", "RUNNABLE", "ZOMBIE"};
+    char states[6][10] = {"UNUSED", "EMBRYO", "SLEEPING", "RUNNABLE", "RUNNING", "ZOMBIE"};
     // cprintf("%d    %d    %s\n", p->pid, p->priority, states[p->state]);
     cprintf("PID: %d\n", p->pid);
     cprintf("Priority: %d\n", p->priority);
@@ -415,6 +455,27 @@ int set_priority(int new_priority, int pid)
   return ret;
 }
 
+int updatewtime(void)
+{
+  acquire(&ptable.lock);
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if(p->state == RUNNABLE)
+      p->wtime++;
+  }
+  release(&ptable.lock);
+  return 1;
+}
+
+int updatequeue(struct proc* p)
+{
+  acquire(&ptable.lock);
+  p->toupdate = 1;
+  release(&ptable.lock);
+  return 0;
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -436,14 +497,6 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    {
-      if (p->state == RUNNING)
-        p->rtime = p->rtime + (ticks - p->lupdate);
-      if (p->state == RUNNABLE)
-        p->wtime = p->wtime + (ticks - p->lupdate);
-      p->lupdate = ticks;
-    }
 
     if(SCHED[0] == 'R'){       // Round robin
       for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
@@ -479,6 +532,7 @@ scheduler(void)
           minimum = p->ctime;
       }
       for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+      {
         if(p->state == RUNNABLE && p->ctime == minimum)
         {
           // Switch to chosen process.  It is the process's job
@@ -497,6 +551,7 @@ scheduler(void)
           // It should have changed its p->state before coming back.
           c->proc = 0;
         }
+      }
     }
     else if(SCHED[0] == 'P'){  // PBS
         uint minimum = 101;
@@ -507,8 +562,6 @@ scheduler(void)
           if(p->priority < minimum)
             minimum = p->priority;
         }
-        if(minimum == 101)
-          continue;
         for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
         {
           struct proc *q;
@@ -539,7 +592,54 @@ scheduler(void)
         }
     }
     else if(SCHED[0] == 'M'){  // MLFQ
-      
+      //aging
+      for(int a = 1; a < 5; a++)
+        for(int b = 0; b < en[a]; b++)
+        {
+          if(ticks - queue[a][b]->lupdate > 50)
+          {
+            struct proc* p = queue[a][b];
+            removequeue(a, p);
+            insertqueue(a - 1, p);
+            // b--;
+          }
+        }
+      for(int a = 0; a < 5; a++)
+      {
+        if(en[a] > 0)
+        {
+          p = queue[a][0];
+          removequeue(a, p);
+          // cprintf("PICKED %d in queue %d\n", p->pid, a);
+          if(p->state == RUNNABLE)
+          {
+            p->nrun += 1;
+            p->wtime = 0;
+            c->proc = p;
+            switchuvm(p);
+            p->state = RUNNING;
+
+            swtch(&(c->scheduler), p->context);
+            switchkvm();
+
+            // Process is done running for now.
+            // It should have changed its p->state before coming back.
+            c->proc = 0;
+            if(p != 0 || p->state == RUNNABLE)
+            {
+              if(p->toupdate == 1)
+              {
+                if(p->curq < 4)
+                  p->curq++;
+                p->toupdate = 0;
+              }
+              p->curqtime = 0;
+              insertqueue(p->curq, p);
+            }
+          }
+          break;
+        }
+      }
     }
     release(&ptable.lock);
   }
@@ -651,7 +751,14 @@ wakeup1(void *chan)
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
+    {
       p->state = RUNNABLE;
+      if(SCHED[0] == 'M')
+      {
+        p->curqtime = 0;
+        insertqueue(p->curq, p);
+      }
+    }
 }
 
 // Wake up all processes sleeping on chan.
@@ -677,7 +784,11 @@ kill(int pid)
       p->killed = 1;
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
+      {
         p->state = RUNNABLE;
+        if(SCHED[0] == 'M')
+          insertqueue(p->curq, p);
+      }
       release(&ptable.lock);
       return 0;
     }

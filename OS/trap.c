@@ -52,6 +52,14 @@ trap(struct trapframe *tf)
       acquire(&tickslock);
       ticks++;
       wakeup(&ticks);
+      for (int a = 0; a < ncpu; a++)
+        if (cpus[a].proc != 0 && cpus[a].proc->state == RUNNING)
+        {
+          cpus[a].proc->rtime++;
+          cpus[a].proc->qtime[cpus[a].proc->curq]++;
+          cpus[a].proc->curqtime++;
+        }
+      updatewtime();
       release(&tickslock);
     }
     lapiceoi();
@@ -105,7 +113,15 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->state == RUNNING &&
      tf->trapno == T_IRQ0+IRQ_TIMER)
   {
-    if(SCHED[0] != 'F') // IF NOT FCFS
+    if(SCHED[0] == 'M') // IF MLFQ
+    {
+      if(myproc()->qtime[myproc()->curq] >= allowed[myproc()->curq])
+      {
+        updatequeue(myproc());
+        yield();
+      }      
+    }
+    else if(SCHED[0] != 'F') // ELSE IF NOT FCFS
      yield();
   }
   // Check if the process has been killed since we yielded

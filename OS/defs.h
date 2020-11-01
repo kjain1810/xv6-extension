@@ -123,6 +123,8 @@ void            yield(void);
 int             waitx(int*, int*);
 int             getallproc(void);
 int             set_priority(int, int);
+int             updatewtime(void);
+int             updatequeue(struct proc *);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
@@ -191,3 +193,4 @@ void            clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+int allowed[5];

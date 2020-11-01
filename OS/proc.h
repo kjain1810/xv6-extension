@@ -60,6 +60,8 @@ struct proc {
   uint nrun;                   // Number of times the process was picked by the scheduler
   uint curq;                   // Current queue
   uint qtime[5];               // Number of ticks the process has received at each of the 5 queues
+  uint toupdate;               // Whether to update the queue of the process or not
+  uint curqtime;
 };
 
 // Process memory is laid out contiguously, low addresses first:
