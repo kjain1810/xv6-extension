@@ -60,6 +60,7 @@ trap(struct trapframe *tf)
           cpus[a].proc->curqtime++;
         }
       updatewtime();
+      // makelogs();
       release(&tickslock);
     }
     lapiceoi();

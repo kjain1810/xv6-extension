@@ -121,7 +121,6 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
-  p->lupdate = ticks;
   p->ctime = ticks;
   p->rtime = 0;
   p->etime = 0;
@@ -596,7 +595,7 @@ scheduler(void)
       for(int a = 1; a < 5; a++)
         for(int b = 0; b < en[a]; b++)
         {
-          if(ticks - queue[a][b]->lupdate > 50)
+          if(ticks - queue[a][b]->lupdate > 30)
           {
             struct proc* p = queue[a][b];
             removequeue(a, p);
@@ -643,6 +642,21 @@ scheduler(void)
     }
     release(&ptable.lock);
   }
+}
+
+int makelogs(void)
+{
+  acquire(&ptable.lock);
+  struct proc* p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if(!p)
+      continue;
+    if(p->pid > 2)
+      cprintf("\nLOGS: %d %d %d", ticks, p->pid, p->curq);
+  }
+  release(&ptable.lock);
+  return 1;
 }
 
 // Enter scheduler.  Must hold only ptable.lock

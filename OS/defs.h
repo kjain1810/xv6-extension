@@ -125,6 +125,7 @@ int             getallproc(void);
 int             set_priority(int, int);
 int             updatewtime(void);
 int             updatequeue(struct proc *);
+int             makelogs(void);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
