@@ -203,11 +203,19 @@ Since a process leaves the queuing system when it voluntarily leaves relinquishe
 
 ![plot_10_procs_20_aging](./plot_10_procs_20_aging.png)
 
-This is the plot of the 10 processes and their queues as the execution progresses. We using age limit in a certain queue here as 20.
+This is the plot of the 10 processes and their queues as the execution progresses. We using age limit in a certain queue here as 20 and 2 CPUs. The graph after this is farely stable with all processes remaining in queue 3 or 4, hardly ever going to 3.
 
 ![plot_10_procs_30_aging](./plot_10_procs_30_aging.png)
 
-This is the plot of the 10 processes and their queue with age limit as 30.
+This is the plot of the 10 processes and their queue with age limit as 30 and 2 CPUs. The graph after this is farely stable with all processes remaining in queue 3 or 4, hardly ever going to 3.
+
+![plot_10_proc_30_aging_4_CPU](./plot_10_proc_30_aging_4_CPU.png)
+
+This is the plot of 10 processes and their queue with age limit 30, but this time with 4 CPUs. As there are 4 CPUs, the waiting time of the processes crosses the age limit very rarely and is barely noticeable in the graph.
+
+![plot_10_proc_30_aging_1_CPU](./plot_10_proc_30_aging_1_CPU.png)
+
+This is the plot of 10 processes and their queue with age limit 30 but only 1 CPU. Since the competition is very high between the processes, they frequently reach the age limit and go as low as low queue 0 until the very end.
 
 As is evident, with age limit 20, the processes shift between queues much more frequently.
 
