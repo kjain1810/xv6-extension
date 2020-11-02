@@ -199,6 +199,19 @@ Using this, the process yields only when it has used the allowed clock ticks and
 
 Since a process leaves the queuing system when it voluntarily leaves relinquishes control of the CPU and is inserted back when it is ready again, a process could, theoretically, enter into queue 1, run for 1 clock tick, relinquish, then immediately become available again and run for just 1 clock tick again. With this, the process will never get demoted from queue 1. Although the time slice it will get will be lower, but if the number of process in queue 2, 3 and 4 is large, this will allow the process to prioritise its execution by a large factor and exploit the system.
 
+## Comparisons
+
+The non preemptive FCFS scheduler performs the worst on the benchmark program. For a benchmark program that didn't assign variable priorities to the processes, the performnace of PBS and RR schedulers are the same and better than FCFS. For programs that assign good priorities, such has prioritizing I/O bound processes, etc, PBS works better. MLFQ works better than RR and may perform even better than PBS.
+
+| Scheduler                            | rtime | wtime |
+| ------------------------------------ | ----- | ----- |
+| Round Robin Scheduler                | 4     | 2000  |
+| First Come First Serve Scheduler     | 4     | 2335  |
+| Priority Based Scheduler             | 6     | 1999  |
+| Multi-level Feedback Queue Scheduler | 5     | 1999  |
+
+
+
 ## Bonus
 
 ![plot_10_procs_20_aging](./plot_10_procs_20_aging.png)
